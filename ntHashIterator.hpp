@@ -4,6 +4,15 @@
 #include <string>
 #include <limits>
 #include "nthash.hpp"
+#include <algorithm>
+#if __cplusplus < 201703L
+#include "span-lite/include/nonstd/span.hpp"
+using SpanType = nonstd::span<const char>;
+#else
+#include <string_view>
+using SpanType = std::basic_string_view<const char>;
+#endif
+
 
 
 /**
@@ -35,8 +44,9 @@ public:
      * @param k k-mer size
      * @param h number of hashes
     */
-    ntHashIterator(const std::string& seq, unsigned h, unsigned k):
-        m_seq(seq), m_h(h), m_k(k), m_hVec(new uint64_t[h]), m_pos(0)
+    template<typename ContainerType , typename=typename std::enable_if<std::is_same<typename std::remove_const<typename std::make_unsigned<typename ContainerType::value_type>::type>::type, unsigned char>::value>::type>
+    ntHashIterator(const ContainerType& seq, unsigned h=1, unsigned k=31):
+        m_seq(seq.data(), seq.size()), m_h(h), m_k(k), m_hVec(new uint64_t[h]), m_pos(0)
     {
         init();
     }
@@ -48,7 +58,7 @@ public:
         m_h = nth.m_h;
         m_k = nth.m_k;
         m_hVec = new uint64_t[m_h];
-        for (unsigned i=0; i<m_h; i++) m_hVec[i] = nth.m_hVec[i];
+        std::copy(nth.m_hVec, nth.m_hVec + m_h, m_hVec);
         m_pos = nth.m_pos;
         m_fhVal = nth.m_fhVal;
         m_rhVal = nth.m_rhVal;
@@ -58,14 +68,14 @@ public:
     /** Initialize internal state of iterator */
     void init()
     {
-        if (m_k > m_seq.length()) {
+        if (m_k > m_seq.size()) {
             m_pos = std::numeric_limits<std::size_t>::max();
             return;
         }
         unsigned locN=0;
-        while (m_pos<m_seq.length()-m_k+1 && !NTMC64(m_seq.data()+m_pos, m_k, m_h, m_fhVal, m_rhVal, locN, m_hVec))
+        while (m_pos<m_seq.size()-m_k+1 && !NTMC64(m_seq.data()+m_pos, m_k, m_h, m_fhVal, m_rhVal, locN, m_hVec))
             m_pos+=locN+1;
-        if (m_pos >= m_seq.length()-m_k+1)
+        if (m_pos >= m_seq.size()-m_k+1)
             m_pos = std::numeric_limits<std::size_t>::max();
     }
 
@@ -73,16 +83,16 @@ public:
     void next()
     {
         ++m_pos;
-        if (m_pos >= m_seq.length()-m_k+1) {
+        if (m_pos >= m_seq.size()-m_k+1) {
             m_pos = std::numeric_limits<std::size_t>::max();
             return;
         }
-        if(seedTab[(unsigned char)(m_seq.at(m_pos+m_k-1))]==seedN) {
+        if(seedTab[(unsigned char)(m_seq.operator[](m_pos+m_k-1))]==seedN) {
             m_pos+=m_k;
             init();
         }
         else
-            NTMC64(m_seq.at(m_pos-1), m_seq.at(m_pos-1+m_k), m_k, m_h, m_fhVal, m_rhVal, m_hVec);
+            NTMC64(m_seq.operator[](m_pos-1), m_seq.operator[](m_pos-1+m_k), m_k, m_h, m_fhVal, m_rhVal, m_hVec);
     }
     
     size_t pos() const{
@@ -122,14 +132,13 @@ public:
 
     /** destructor */
     ~ntHashIterator() {
-        if(m_hVec!=NULL)
-            delete [] m_hVec;
+        delete [] m_hVec;
     }
 
 private:
 
     /** DNA sequence */
-    std::string m_seq;
+    SpanType m_seq;
 
     /** number of hashes */
     unsigned m_h;

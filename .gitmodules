@@ -1,0 +1,3 @@
+[submodule "span-lite"]
+	url = https://github.com/martinmoene/span-lite
+    path = span-lite
