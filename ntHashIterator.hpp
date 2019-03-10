@@ -13,7 +13,7 @@ using SpanType = nonstd::span<const char>;
 using SpanType = std::basic_string_view<const char>;
 #endif
 
-
+namespace nt {
 
 /**
  * Iterate over hash values for k-mers in a
@@ -157,6 +157,8 @@ private:
 
     /** reverse-complement k-mer hash value */
     uint64_t m_rhVal;
-};
+}; // ntHashIterator
+
+} // namespace nt
 
 #endif
