@@ -26,6 +26,7 @@
 #include "murmur.hpp"
 
 using namespace std;
+using namespace nt;
 
 inline unsigned popCnt(unsigned char x) {
     return ((0x876543210 >>

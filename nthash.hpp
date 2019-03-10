@@ -12,6 +12,8 @@
 #include <stdint.h>
 #include <vector>
 
+namespace nt {
+
 // offset for the complement base in the random seeds table
 const uint8_t cpOff = 0x07;
 
@@ -323,13 +325,13 @@ inline uint64_t NTC64(const char * kmerSeq, const unsigned k, const unsigned see
 
 // multihash ntHash, ntBase
 inline void NTM64(const char * kmerSeq, const unsigned k, const unsigned m, uint64_t *hVal) {
-    uint64_t bVal=0, tVal=0;
+    uint64_t bVal, tVal;
     bVal = NTF64(kmerSeq, k);
-    hVal[0] = bVal;
+    *hVal++ = bVal;
     for(unsigned i=1; i<m; i++) {
         tVal = bVal * (i ^ k * multiSeed);
         tVal ^= tVal >> multiShift;
-        hVal[i] =  tVal;
+        *hVal++ = tVal;
     }
 }
 
@@ -615,6 +617,8 @@ inline void NTMS64(const char *kmerSeq, const std::vector<std::vector<unsigned> 
         hVal[j] = hStn[j]? rsVal : fsVal;
     }
 }
+
+} // namespace nt
 
 
 #endif
